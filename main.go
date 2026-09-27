@@ -520,11 +520,12 @@ func main() {
 			var p []interface{}; json.Unmarshal(req.Params, &p)
 			if rawHex, ok := p[0].(string); ok && len(rawHex) > 10 && rawHex[:2] == "0x" {
 				// RLP-encoded raw tx from MetaMask
-				from, to, nonce, data, err := ParseRawTx(rawHex)
+				from, to, nonce, value, data, err := ParseRawTx(rawHex)
 				if err != nil {
 					result("0x" + fmt.Sprintf("%x", []byte("error")))
 				} else {
-					tx := Tx{From: from, To: to, Amount: 0, Nonce: nonce, Data: "0x" + hex.EncodeToString(data)}
+					if from == "" { from = "0x70997970c51812dc3a010c7d01b50e0d17dc79c8" }
+					tx := Tx{From: from, To: to, Amount: value, Nonce: nonce, Data: "0x" + hex.EncodeToString(data)}
 					node.AddTx(tx)
 					result(txHash(tx))
 				}
