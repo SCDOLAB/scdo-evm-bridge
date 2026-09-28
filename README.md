@@ -1,4 +1,4 @@
-# scdo-shard0: SCDO shard 0 (EVM) node
+# scdo-shard0-parallel-legacy: retired SCDO shard 0 parallel-node (archived)
 
 > **Retired (2026-09-28). Not what runs shard 0 today.** This is the old `parallel-node` code. It still has chain ID 568 in `main.go` and was stopped on 2026-09-28. Shard 0 now runs a core-geth (Ethash PoW) fork with chain ID 5680: see [SCDOLAB/scdo-shard0](https://github.com/SCDOLAB/scdo-shard0). This repository is archived and kept for reference only.
 
