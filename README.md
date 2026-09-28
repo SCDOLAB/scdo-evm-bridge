@@ -18,7 +18,7 @@ lines). It is separate from the go-scdo PoW shards 1-4.
 
 | | |
 |---|---|
-| Chain ID | **568** (`0x238`) |
+| Chain ID | **5680** (`0x1630`) |
 | Currency | SCDO, **18 decimals** (1 SCDO = 10^18 wei) |
 | Gas price | **10^10 wei** (10 gwei), flat 21000 gas per transaction, so the fee is 0.00021 SCDO |
 | Block time | **2 s** |
@@ -34,7 +34,7 @@ Manually: *Networks > Add network > Add a network manually*:
 |---|---|
 | Network name | SCDO Shard 0 |
 | RPC URL | `https://scdoscan.io/rpc/0` |
-| Chain ID | `568` |
+| Chain ID | `5680` |
 | Currency symbol | `SCDO` |
 | Block explorer | `https://scdoscan.io` |
 
@@ -44,7 +44,7 @@ Or from a web page:
 await window.ethereum.request({
   method: 'wallet_addEthereumChain',
   params: [{
-    chainId: '0x238',
+    chainId: '0x1630',
     chainName: 'SCDO Shard 0',
     nativeCurrency: { name: 'SCDO', symbol: 'SCDO', decimals: 18 },
     rpcUrls: ['https://scdoscan.io/rpc/0'],
@@ -58,7 +58,7 @@ Quick check:
 ```bash
 curl -s -X POST https://scdoscan.io/rpc/0 -H 'Content-Type: application/json' \
   -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}'
-# {"id":1,"jsonrpc":"2.0","result":"0x238"}
+# {"id":1,"jsonrpc":"2.0","result":"0x1630"}
 ```
 
 ## JSON-RPC methods
@@ -68,7 +68,7 @@ Anything else returns `-32601 method not found`.
 
 | Method | Notes |
 |---|---|
-| `eth_chainId`, `net_version` | `0x238` / `"568"` |
+| `eth_chainId`, `net_version` | `0x1630` / `"5680"` |
 | `web3_clientVersion` | `scdo-parallel/0.5.0` |
 | `eth_blockNumber` | |
 | `eth_getBlockByNumber`, `eth_getBlockByHash` | Tags: `latest`, `pending`, `safe`, `finalized` (all mean head), `earliest`, or a hex number; full-tx flag supported |
@@ -78,7 +78,7 @@ Anything else returns `-32601 method not found`.
 | `eth_getTransactionReceipt` | `logs` is always empty, `logsBloom` is zero |
 | `eth_getBalance`, `eth_getTransactionCount`, `eth_getCode` | Latest state only (the block argument is ignored, except `pending` for the nonce) |
 | `eth_call` | Read-only execution with the built-in interpreter at the latest state |
-| `eth_sendRawTransaction` | Signed legacy (EIP-155), EIP-2930 and EIP-1559 transactions. Chain ID 568 is required and gasPrice / maxFeePerGas must be at least 10^10 wei. Unsigned JSON transactions are rejected |
+| `eth_sendRawTransaction` | Signed legacy (EIP-155), EIP-2930 and EIP-1559 transactions. Chain ID 5680 is required and gasPrice / maxFeePerGas must be at least 10^10 wei. Unsigned JSON transactions are rejected |
 | `eth_gasPrice` | `0x2540be400` (10^10 wei) |
 | `eth_maxPriorityFeePerGas` | `0x0` |
 | `eth_estimateGas` | Always `0x5208` (21000) |
