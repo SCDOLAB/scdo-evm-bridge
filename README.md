@@ -1,44 +1,164 @@
-# SCDO Parallel EVM
+# scdo-shard0: SCDO shard 0 (EVM) node
 
-A home-grown PoW blockchain with native EVM support and 4-shard parallel execution.
+> **Compliance notice.** The public shard 0 endpoint and the explorer at
+> [scdoscan.io](https://scdoscan.io) are operated by **9Y9 PTY LTD** (Melbourne, Australia;
+> ACN 600 445 118, ABN 19 600 445 118; see the [compliance page](https://scdoscan.io/compliance.html)). 9Y9 PTY LTD is registered with
+> [AUSTRAC VASP register](https://online.apps.austrac.gov.au/vaspr) as a Digital Currency Exchange provider,
+> registration **DCE100714503-001** (valid until 14 March 2029), and is a member of the
+> Australian Financial Complaints Authority (**AFCA member 124589**).
+> AUSTRAC registration is not an endorsement of 9Y9 PTY LTD, SCDO or this software by
+> AUSTRAC or any government agency. This repository is open-source software. It is not
+> financial advice or an offer of any financial product. Digital assets are volatile and
+> you can lose all of their value.
 
-## Features
+`parallel-node` is the node that runs **SCDO shard 0**: a single-node, EVM-compatible
+chain with Ethereum-style JSON-RPC, so standard wallets (MetaMask, ethers.js, web3.js)
+can connect to it. It is a small, dependency-light Go program (one binary, about 2,500
+lines). It is separate from the go-scdo PoW shards 1-4.
 
-- **PoW consensus** — keccak256 mining, adjustable difficulty, 2s block time
-- **4-shard parallel execution** — transactions routed by address, cross-shard debt settlement
-- **EVM compatible** — 45+ opcodes including Shanghai (PUSH0) and Cancun (MCOPY, BASEFEE)
-- **Precompiles** — ecrecover(0x01), sha256(0x02), ripemd160(0x03), identity(0x04), BLS pairing(0x08)
-- **Smart contracts** — CALL/DELEGATECALL/STATICCALL/CREATE/CREATE2, ERC-20 precompile at 0x10
-- **P2P networking** — peer discovery, broadcast, startup state sync
-- **MetaMask ready** — ChainID 0x238 (568), standard eth_* JSON-RPC
-- **Web UI** — dark-themed block explorer at /ui
+| | |
+|---|---|
+| Chain ID | **568** (`0x238`) |
+| Currency | SCDO, **18 decimals** (1 SCDO = 10^18 wei) |
+| Gas price | **10^10 wei** (10 gwei), flat 21000 gas per transaction, so the fee is 0.00021 SCDO |
+| Block time | **2 s** |
+| Public RPC | `https://scdoscan.io/rpc/0` |
+| Explorer | <https://scdoscan.io> |
+| Client version | `scdo-parallel/0.5.0` (this source; the live node reported `0.4` when this snapshot was taken) |
 
-## Quick Start
+## Add to MetaMask
+
+Manually: *Networks > Add network > Add a network manually*:
+
+| Field | Value |
+|---|---|
+| Network name | SCDO Shard 0 |
+| RPC URL | `https://scdoscan.io/rpc/0` |
+| Chain ID | `568` |
+| Currency symbol | `SCDO` |
+| Block explorer | `https://scdoscan.io` |
+
+Or from a web page:
+
+```js
+await window.ethereum.request({
+  method: 'wallet_addEthereumChain',
+  params: [{
+    chainId: '0x238',
+    chainName: 'SCDO Shard 0',
+    nativeCurrency: { name: 'SCDO', symbol: 'SCDO', decimals: 18 },
+    rpcUrls: ['https://scdoscan.io/rpc/0'],
+    blockExplorerUrls: ['https://scdoscan.io'],
+  }],
+});
+```
+
+Quick check:
 
 ```bash
-go build -o scdo-node .
-./scdo-node
+curl -s -X POST https://scdoscan.io/rpc/0 -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}'
+# {"id":1,"jsonrpc":"2.0","result":"0x238"}
 ```
 
-Node listens on :8050. Add to MetaMask:
-- RPC URL: http://<node-ip>:8050
-- Chain ID: 0x238 (568)
-- Symbol: SCDO
+## JSON-RPC methods
 
-## RPC Methods
+The list below comes from `handleRPC` in `main.go`. Batch requests (JSON arrays) are supported.
+Anything else returns `-32601 method not found`.
 
-eth_chainId, eth_blockNumber, eth_getBalance, eth_gasPrice, eth_sendRawTransaction,
-eth_call, eth_getCode, eth_estimateGas, eth_getTransactionReceipt, net_version,
-+ faucet, /health, /blocks, /ui, /state
+| Method | Notes |
+|---|---|
+| `eth_chainId`, `net_version` | `0x238` / `"568"` |
+| `web3_clientVersion` | `scdo-parallel/0.5.0` |
+| `eth_blockNumber` | |
+| `eth_getBlockByNumber`, `eth_getBlockByHash` | Tags: `latest`, `pending`, `safe`, `finalized` (all mean head), `earliest`, or a hex number; full-tx flag supported |
+| `eth_getBlockTransactionCountByNumber`, `eth_getBlockTransactionCountByHash` | |
+| `eth_getTransactionByHash` | Also returns pending pool transactions (with null block fields) |
+| `eth_getTransactionByBlockNumberAndIndex` | |
+| `eth_getTransactionReceipt` | `logs` is always empty, `logsBloom` is zero |
+| `eth_getBalance`, `eth_getTransactionCount`, `eth_getCode` | Latest state only (the block argument is ignored, except `pending` for the nonce) |
+| `eth_call` | Read-only execution with the built-in interpreter at the latest state |
+| `eth_sendRawTransaction` | Signed legacy (EIP-155), EIP-2930 and EIP-1559 transactions. Chain ID 568 is required and gasPrice / maxFeePerGas must be at least 10^10 wei. Unsigned JSON transactions are rejected |
+| `eth_gasPrice` | `0x2540be400` (10^10 wei) |
+| `eth_maxPriorityFeePerGas` | `0x0` |
+| `eth_estimateGas` | Always `0x5208` (21000) |
+| `eth_feeHistory` | Minimal (base fee 0) |
+| `eth_getLogs` | **Stub: always returns `[]`** |
+| `eth_syncing` (`false`), `eth_mining` (`true`), `eth_hashrate`, `eth_coinbase`, `eth_accounts` (`[]`), `eth_protocolVersion`, `net_listening`, `net_peerCount` | Static or informational |
+| `scdo_nativeCurrency` | Non-standard: symbol, decimals, gas price, fee, faucet amount, `decimalsMigrationBlock` |
+| `eth_getLatestTxs` | Non-standard: the 20 most recent transactions |
 
-## Architecture
+Other HTTP endpoints on the same port: `GET /health` (height, head hash, state root, version),
+`GET /metrics` (Prometheus text), `GET /blocks` (last 10 blocks), `GET /state` (all balances),
+`GET /faucet?addr=0x...` (test funds, rate-limited: 1 claim per address per 24 h and
+per IP per hour), `GET /ui` (demo page).
 
+## Known limits
+
+Please read these before you build on shard 0:
+
+- **Single node.** One node produces all blocks. There is no peer-to-peer block sync or
+  consensus between nodes (`SCDO_PEERS` only pings peers). Availability and ordering depend
+  on the operator. The header PoW seal (16-bit keccak) is a formality, not a security mechanism.
+- **No event logs.** `eth_getLogs` always returns `[]` and receipts contain no logs, so dApps
+  and indexers that depend on events will not work yet.
+- **Legacy gas only.** Every transaction is charged a flat 21000 gas at 10^10 wei
+  (0.00021 SCDO), whatever gas limit or price it sets. Blocks have no base fee. EIP-1559
+  transactions are accepted, but `maxFeePerGas` is only checked against the minimum and the
+  priority fee is ignored. `eth_estimateGas` always returns 21000.
+- **Limited smart-contract support.** Deployment stores the runtime code. The contract address
+  is the first 20 bytes of `keccak256` of the ASCII string `<lowercase 0x sender><decimal nonce>`, which is **not** the Ethereum `CREATE` address.
+  Transactions sent *to* a contract do not execute its code (only value moves). Contract
+  state can be read with `eth_call` through a partial EVM interpreter. A built-in demo token
+  at `0x…0010` supports `balanceOf`, `totalSupply`, `decimals` and `transfer`.
+- **Latest state only.** Historical balance/nonce/code queries by block number are not supported.
+- **Decimals migration.** Before block 59754 on the live chain, amounts were in 8-decimal
+  units (1e-8 SCDO). `scdo_nativeCurrency.decimalsMigrationBlock` reports the boundary, and
+  transactions in earlier blocks keep their original values.
+- **Simple storage.** State is one JSON file that is rewritten every block. Headers and txs
+  are append-only files. This is fine for the current load but will not scale to large state.
+- **Internal partitions.** `numShards = 4` means internal execution partitions inside this
+  node (transfers between partitions settle in the next block). They are unrelated to the
+  go-scdo shards 1-4.
+- The `/ui` demo's "Transfer ERC20" button still uses the removed unsigned-transaction
+  form, so it returns an error. Use a wallet instead.
+
+## Build and run
+
+Requires Go 1.26+ (from `go.mod`; with `GOTOOLCHAIN=auto` an older `go` downloads it).
+
+```bash
+make build            # CGO_ENABLED=0 go build -trimpath -o parallel-node .
+make run              # starts a local chain in ./data on :8050
+# or
+SCDO_DATADIR=$PWD/data ./parallel-node
 ```
-main.go   — node core: PoW mining, 4 shards, P2P, RPC, Web UI
-evm.go    — EVM interpreter: 45+ opcodes, precompiles, CALL/CREATE
-rlp.go    — RLP decoder for transactions
-```
 
-## Network
+Environment variables:
 
-Running on 4 home machines: .50, .90 (Linux), .114, .71 (Windows).
+| Variable | Default | Meaning |
+|---|---|---|
+| `SCDO_DATADIR` | `/root/parallel` | Directory for `state.json`, `headers.dat`, `txs.jsonl`, `faucet.json` |
+| `SCDO_COINBASE` | derived address | Fee recipient (0x + 40 hex) |
+| `SCDO_PEERS` | none | Comma-separated peer URLs (health ping only) |
+
+The node listens on `:8050` on all interfaces with CORS `*`. In production, run it behind a
+reverse proxy that sets `X-Real-IP` (used by the faucet rate limit) and firewall port
+8050. `parallel-node.service` is a hardened systemd unit (dedicated `scdo` user,
+`/var/lib/scdo-parallel`).
+
+**Fresh chains.** When no `state.json` exists, the node creates a demo genesis that funds a
+few placeholder addresses. Two of them are the well-known Hardhat/Anvil test accounts
+(`0x7099…79c8`, `0x3c44…93bc`), whose private keys are public. Change the genesis list in
+`main()` before you run any network that other people use.
+
+Never commit chain data: `.gitignore` excludes `state.json`, `headers.dat`, `txs.jsonl`
+and `faucet.json` (faucet.json holds client IP addresses).
+
+## Security
+
+See [SECURITY.md](SECURITY.md). Report vulnerabilities to admin@apeccapital.org.
+
+## License
+
+MIT © 2026 9Y9 PTY LTD. See [LICENSE](LICENSE).

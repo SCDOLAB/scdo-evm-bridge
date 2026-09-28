@@ -1,0 +1,37 @@
+# systemd unit for the SCDO shard 0 node.
+# Install:
+#   sudo useradd --system --home /var/lib/scdo-parallel --shell /usr/sbin/nologin scdo
+#   sudo install -d -o scdo -g scdo /var/lib/scdo-parallel
+#   sudo install -m 0755 parallel-node /usr/local/bin/parallel-node
+#   sudo cp parallel-node.service /etc/systemd/system/ && sudo systemctl daemon-reload
+#   sudo systemctl enable --now parallel-node
+# The node listens on :8050 (all interfaces). Put it behind a reverse proxy (nginx) that
+# sets X-Real-IP, and firewall 8050 from the public internet.
+
+[Unit]
+Description=SCDO Parallel EVM Node (Shard 0)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=scdo
+Group=scdo
+Environment=SCDO_DATADIR=/var/lib/scdo-parallel
+# Optional: Environment=SCDO_COINBASE=0xYourFeeRecipientAddress
+# Optional: Environment=SCDO_PEERS=http://peer1:8050,http://peer2:8050
+WorkingDirectory=/var/lib/scdo-parallel
+ExecStart=/usr/local/bin/parallel-node
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/scdo-parallel
+
+[Install]
+WantedBy=multi-user.target

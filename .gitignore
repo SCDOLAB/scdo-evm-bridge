@@ -1,3 +1,29 @@
-scdo-node
-state.json
+# Binaries
+/parallel-node
+/parallel-node-*
 *.exe
+*.test
+*.out
+dist/
+
+# Chain data and runtime state: never commit
+state.json
+state.json.tmp
+headers.dat
+txs.jsonl
+faucet.json
+faucet.json.tmp
+*.dat
+*.jsonl
+
+# Logs, backups, staging copies
+*.log
+*.bak
+*.bak.*
+*-staging/
+v0*-staging/
+
+# Local environment
+.env
+.idea/
+.vscode/

@@ -4,8 +4,8 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/sha256"
-	"golang.org/x/crypto/sha3"
 	"fmt"
+	"golang.org/x/crypto/sha3"
 	"math/big"
 )
 
@@ -32,18 +32,18 @@ type LogEntry struct {
 type ContractCallBack func(addr string, input []byte, delegate bool) ([]byte, error)
 
 type EVM struct {
-	code     []byte
-	input    []byte
-	stack    []*big.Int
-	memory   []byte
-	storage  map[string]*big.Int
-	pc       int
-	gasLeft  uint64
-	gasUsed  uint64
-	ret      []byte
-	logs     []LogEntry
-	address  string
-	callback ContractCallBack
+	code       []byte
+	input      []byte
+	stack      []*big.Int
+	memory     []byte
+	storage    map[string]*big.Int
+	pc         int
+	gasLeft    uint64
+	gasUsed    uint64
+	ret        []byte
+	logs       []LogEntry
+	address    string
+	callback   ContractCallBack
 	validJumps map[int]bool
 }
 
@@ -54,14 +54,16 @@ func NewEVM(code []byte, input []byte, storage map[string]*big.Int) *EVM {
 }
 
 func (e *EVM) SetCallback(cb ContractCallBack) { e.callback = cb }
-func (e *EVM) SetAddress(addr string)           { e.address = addr }
-func (e *EVM) GasUsed() uint64                  { return e.gasUsed }
+func (e *EVM) SetAddress(addr string)          { e.address = addr }
+func (e *EVM) GasUsed() uint64                 { return e.gasUsed }
 
 func (e *EVM) computeJumpDests() {
 	e.validJumps = make(map[int]bool)
 	for i := 0; i < len(e.code); {
 		op := e.code[i]
-		if op == 0x5b { e.validJumps[i] = true }
+		if op == 0x5b {
+			e.validJumps[i] = true
+		}
 		if op >= 0x60 && op <= 0x7f {
 			i += int(op-0x5f) + 1
 		} else {
@@ -72,14 +74,18 @@ func (e *EVM) computeJumpDests() {
 
 func (e *EVM) stackPush(v *big.Int) { e.stack = append(e.stack, v) }
 func (e *EVM) stackPop() *big.Int {
-	if len(e.stack) == 0 { return big.NewInt(0) }
+	if len(e.stack) == 0 {
+		return big.NewInt(0)
+	}
 	v := e.stack[len(e.stack)-1]
 	e.stack = e.stack[:len(e.stack)-1]
 	return v
 }
 
 func (e *EVM) memRead(offset, size int64) []byte {
-	if size <= 0 { return []byte{} }
+	if size <= 0 {
+		return []byte{}
+	}
 	if int(offset+size) > len(e.memory) {
 		buf := make([]byte, size)
 		end := offset + size
@@ -101,7 +107,9 @@ func (e *EVM) memWrite(offset int64, data []byte) {
 }
 
 func (e *EVM) expandMemory(offset, size int64) {
-	if size == 0 { return }
+	if size == 0 {
+		return
+	}
 	newSize := int(offset + size)
 	for len(e.memory) < newSize {
 		e.memory = append(e.memory, 0)
@@ -113,16 +121,26 @@ func (e *EVM) expandMemory(offset, size int64) {
 
 func gasCost(op byte) uint64 {
 	switch {
-	case op == 0x00: return 0
-	case op == 0x5b: return 1
-	case op == 0x54: return 800
-	case op == 0x55: return 20000
-	case op == 0xf1, op == 0xf2, op == 0xf4, op == 0xfa: return 100
-	case op == 0xf0, op == 0xf5: return 32000
-	case op == 0xff: return 5000
-	case op >= 0xa0 && op <= 0xa4: return 375 + uint64(op-0xa0)*375
-	case op >= 0x60 && op <= 0x7f: return 3
-	default: return 3
+	case op == 0x00:
+		return 0
+	case op == 0x5b:
+		return 1
+	case op == 0x54:
+		return 800
+	case op == 0x55:
+		return 20000
+	case op == 0xf1, op == 0xf2, op == 0xf4, op == 0xfa:
+		return 100
+	case op == 0xf0, op == 0xf5:
+		return 32000
+	case op == 0xff:
+		return 5000
+	case op >= 0xa0 && op <= 0xa4:
+		return 375 + uint64(op-0xa0)*375
+	case op >= 0x60 && op <= 0x7f:
+		return 3
+	default:
+		return 3
 	}
 }
 
@@ -148,25 +166,49 @@ func (e *EVM) Run() ([]byte, error) {
 			e.stackPush(new(big.Int).Sub(b, a))
 		case 0x04:
 			a, b := e.stackPop(), e.stackPop()
-			if a.Sign() == 0 { e.stackPush(big.NewInt(0)) } else { e.stackPush(new(big.Int).Div(b, a)) }
+			if a.Sign() == 0 {
+				e.stackPush(big.NewInt(0))
+			} else {
+				e.stackPush(new(big.Int).Div(b, a))
+			}
 		case 0x06:
 			a, b := e.stackPop(), e.stackPop()
-			if a.Sign() == 0 { e.stackPush(big.NewInt(0)) } else { e.stackPush(new(big.Int).Mod(b, a)) }
+			if a.Sign() == 0 {
+				e.stackPush(big.NewInt(0))
+			} else {
+				e.stackPush(new(big.Int).Mod(b, a))
+			}
 		case 0x0a:
 			base, exp := e.stackPop(), e.stackPop()
 			e.stackPush(new(big.Int).Exp(base, exp, nil))
 		case 0x10:
 			a, b := e.stackPop(), e.stackPop()
-			if b.Cmp(a) < 0 { e.stackPush(big.NewInt(1)) } else { e.stackPush(big.NewInt(0)) }
+			if b.Cmp(a) < 0 {
+				e.stackPush(big.NewInt(1))
+			} else {
+				e.stackPush(big.NewInt(0))
+			}
 		case 0x11:
 			a, b := e.stackPop(), e.stackPop()
-			if b.Cmp(a) > 0 { e.stackPush(big.NewInt(1)) } else { e.stackPush(big.NewInt(0)) }
+			if b.Cmp(a) > 0 {
+				e.stackPush(big.NewInt(1))
+			} else {
+				e.stackPush(big.NewInt(0))
+			}
 		case 0x14:
 			a, b := e.stackPop(), e.stackPop()
-			if a.Cmp(b) == 0 { e.stackPush(big.NewInt(1)) } else { e.stackPush(big.NewInt(0)) }
+			if a.Cmp(b) == 0 {
+				e.stackPush(big.NewInt(1))
+			} else {
+				e.stackPush(big.NewInt(0))
+			}
 		case 0x15:
 			a := e.stackPop()
-			if a.Sign() == 0 { e.stackPush(big.NewInt(1)) } else { e.stackPush(big.NewInt(0)) }
+			if a.Sign() == 0 {
+				e.stackPush(big.NewInt(1))
+			} else {
+				e.stackPush(big.NewInt(0))
+			}
 		case 0x16:
 			a, b := e.stackPop(), e.stackPop()
 			e.stackPush(new(big.Int).And(a, b))
@@ -192,7 +234,9 @@ func (e *EVM) Run() ([]byte, error) {
 		case 0x35:
 			offset := e.stackPop().Int64()
 			var buf [32]byte
-			if int(offset) < len(e.input) { copy(buf[:], e.input[offset:]) }
+			if int(offset) < len(e.input) {
+				copy(buf[:], e.input[offset:])
+			}
 			e.stackPush(new(big.Int).SetBytes(buf[:]))
 		case 0x36:
 			e.stackPush(big.NewInt(int64(len(e.input))))
@@ -202,10 +246,12 @@ func (e *EVM) Run() ([]byte, error) {
 			dest, src, sz := e.stackPop().Int64(), e.stackPop().Int64(), e.stackPop().Int64()
 			e.expandMemory(dest, sz)
 			data := make([]byte, sz)
-			if int(src+sz) <= len(e.code) { copy(data, e.code[src:src+sz]) }
+			if int(src+sz) <= len(e.code) {
+				copy(data, e.code[src:src+sz])
+			}
 			e.memWrite(dest, data)
-		case 0x3a:
-			e.stackPush(big.NewInt(21000))
+		case 0x3a: // GASPRICE: 1e10 wei (18-decimal native currency)
+			e.stackPush(big.NewInt(10000000000))
 		case 0x3b:
 			e.stackPush(big.NewInt(0))
 		case 0x3d:
@@ -232,7 +278,9 @@ func (e *EVM) Run() ([]byte, error) {
 			offset := e.stackPop().Int64()
 			e.expandMemory(offset, 32)
 			var buf [32]byte
-			if int(offset)+32 <= len(e.memory) { copy(buf[:], e.memory[offset:offset+32]) }
+			if int(offset)+32 <= len(e.memory) {
+				copy(buf[:], e.memory[offset:offset+32])
+			}
 			e.stackPush(new(big.Int).SetBytes(buf[:]))
 		case 0x52:
 			offset := e.stackPop().Int64()
@@ -247,16 +295,24 @@ func (e *EVM) Run() ([]byte, error) {
 			e.memWrite(offset, []byte{val})
 		case 0x54:
 			idx := e.stackPop()
-			if v, ok := e.storage[idx.String()]; ok { e.stackPush(new(big.Int).Set(v)) } else { e.stackPush(big.NewInt(0)) }
+			if v, ok := e.storage[idx.String()]; ok {
+				e.stackPush(new(big.Int).Set(v))
+			} else {
+				e.stackPush(big.NewInt(0))
+			}
 		case 0x55:
 			idx, val := e.stackPop(), e.stackPop()
 			e.storage[idx.String()] = new(big.Int).Set(val)
 		case 0x56:
 			dest := int(e.stackPop().Int64())
-			if e.validJumps[dest] { e.pc = dest }
+			if e.validJumps[dest] {
+				e.pc = dest
+			}
 		case 0x57:
 			dest := int(e.stackPop().Int64())
-			if e.stackPop().Sign() != 0 && e.validJumps[dest] { e.pc = dest }
+			if e.stackPop().Sign() != 0 && e.validJumps[dest] {
+				e.pc = dest
+			}
 		case 0x58:
 			e.stackPush(big.NewInt(int64(e.pc - 1)))
 		case 0x59:
@@ -292,7 +348,9 @@ func (e *EVM) Run() ([]byte, error) {
 		case 0xf1, 0xf2, 0xf4, 0xfa:
 			e.stackPop()
 			addr := e.stackPop()
-			if op != 0xf4 && op != 0xfa { e.stackPop() }
+			if op != 0xf4 && op != 0xfa {
+				e.stackPop()
+			}
 			argsOff := e.stackPop().Int64()
 			argsSize := e.stackPop().Int64()
 			retOff := e.stackPop().Int64()
@@ -321,9 +379,13 @@ func (e *EVM) Run() ([]byte, error) {
 				addrHex := fmt.Sprintf("0x%x", addr)
 				delegate := (op == 0xf4)
 				result, err := e.callback(addrHex, input, delegate)
-				if err == nil { out = result }
+				if err == nil {
+					out = result
+				}
 			}
-			if len(out) > int(retSize) { out = out[:retSize] }
+			if len(out) > int(retSize) {
+				out = out[:retSize]
+			}
 			copy(e.memory[int(retOff):int(retOff)+len(out)], out)
 			e.ret = out
 			e.stackPush(big.NewInt(1))
@@ -331,7 +393,9 @@ func (e *EVM) Run() ([]byte, error) {
 			e.stackPop()
 			offset := e.stackPop().Int64()
 			size := e.stackPop().Int64()
-			if op == 0xf5 { e.stackPop() }
+			if op == 0xf5 {
+				e.stackPop()
+			}
 			e.expandMemory(offset, size)
 			initCode := e.memRead(offset, size)
 			subEVM := NewEVM(initCode, nil, make(map[string]*big.Int))
@@ -347,15 +411,21 @@ func (e *EVM) Run() ([]byte, error) {
 			if op >= 0x60 && op <= 0x7f {
 				n := int(op - 0x5f)
 				end := e.pc + n
-				if end > len(e.code) { end = len(e.code) }
+				if end > len(e.code) {
+					end = len(e.code)
+				}
 				e.stackPush(new(big.Int).SetBytes(e.code[e.pc:end]))
 				e.pc = end
 			} else if op >= 0x80 && op <= 0x8f {
 				n := int(op - 0x7f)
-				if len(e.stack) >= n { e.stackPush(new(big.Int).Set(e.stack[len(e.stack)-n])) }
+				if len(e.stack) >= n {
+					e.stackPush(new(big.Int).Set(e.stack[len(e.stack)-n]))
+				}
 			} else if op >= 0x90 && op <= 0x9f {
 				n := int(op - 0x8f)
-				if len(e.stack) > n { e.stack[len(e.stack)-1], e.stack[len(e.stack)-1-n] = e.stack[len(e.stack)-1-n], e.stack[len(e.stack)-1] }
+				if len(e.stack) > n {
+					e.stack[len(e.stack)-1], e.stack[len(e.stack)-1-n] = e.stack[len(e.stack)-1-n], e.stack[len(e.stack)-1]
+				}
 			}
 		}
 	}
@@ -364,15 +434,21 @@ func (e *EVM) Run() ([]byte, error) {
 
 // ecrecover: real secp256k1 public key recovery
 func (e *EVM) ecrecover(input []byte) []byte {
-	if len(input) < 128 { return make([]byte, 32) }
+	if len(input) < 128 {
+		return make([]byte, 32)
+	}
 	hash := new(big.Int).SetBytes(input[0:32])
 	v := new(big.Int).SetBytes(input[32:64])
 	r := new(big.Int).SetBytes(input[64:96])
 	s := new(big.Int).SetBytes(input[96:128])
 
 	// Validate
-	if r.Cmp(big.NewInt(0)) <= 0 || r.Cmp(secp256k1.N) >= 0 { return make([]byte, 32) }
-	if s.Cmp(big.NewInt(0)) <= 0 || s.Cmp(secp256k1.N) >= 0 { return make([]byte, 32) }
+	if r.Cmp(big.NewInt(0)) <= 0 || r.Cmp(secp256k1.N) >= 0 {
+		return make([]byte, 32)
+	}
+	if s.Cmp(big.NewInt(0)) <= 0 || s.Cmp(secp256k1.N) >= 0 {
+		return make([]byte, 32)
+	}
 
 	// Recover public key: Q = r^-1 * (s*R - z*G)
 	// R = (r, y) where y is computed from curve
@@ -389,7 +465,9 @@ func (e *EVM) ecrecover(input []byte) []byte {
 	// Choose y based on v (27 or 28)
 	// v is typically 27 or 28, our input has it as 0 or 1 in the high bit
 	yParity := v.Int64() - 27
-	if yParity < 0 || yParity > 1 { yParity = 0 }
+	if yParity < 0 || yParity > 1 {
+		yParity = 0
+	}
 	if y.Bit(0) != uint(yParity) {
 		y.Sub(modP, y)
 	}
@@ -426,7 +504,9 @@ func (e *EVM) ecrecover(input []byte) []byte {
 }
 
 func VerifySignature(pubKey []byte, hash []byte, r, s []byte) bool {
-	if len(pubKey) < 64 { return false }
+	if len(pubKey) < 64 {
+		return false
+	}
 	pub := &ecdsa.PublicKey{
 		Curve: secp256k1,
 		X:     new(big.Int).SetBytes(pubKey[:32]),
