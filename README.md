@@ -3,7 +3,7 @@
 > **Retired (2026-09-28). Not what runs shard 0 today.** This is the old `parallel-node` code. It still has chain ID 568 in `main.go` and was stopped on 2026-09-28. Shard 0 now runs a core-geth (Ethash PoW) fork with chain ID 5680: see [SCDOLAB/scdo-shard0](https://github.com/SCDOLAB/scdo-shard0). This repository is archived and kept for reference only.
 
 > **Compliance notice.** The public shard 0 endpoint and the explorer at
-> [scdoscan.io](https://scdoscan.io) are operated by **9Y9 PTY LTD** (3/251 Blackburn Rd, Mount Waverley VIC 3149 (Melbourne), Australia;
+> [scdoscan.io](https://scdoscan.io) are operated by **9Y9 PTY LTD** (Melbourne, Australia;
 > ACN 600 445 118, ABN 19 600 445 118; see the [compliance page](https://scdoscan.io/compliance.html)). 9Y9 PTY LTD is registered with
 > [AUSTRAC VASP register](https://online.apps.austrac.gov.au/vaspr) as a Digital Currency Exchange provider,
 > registration **DCE100714503-001** (valid until 14 March 2029), and is a member of the
@@ -14,7 +14,7 @@
 `parallel-node` is the node that runs **SCDO shard 0**: a single-node, EVM-compatible
 chain with Ethereum-style JSON-RPC, so standard wallets (MetaMask, ethers.js, web3.js)
 can connect to it. It is a small, dependency-light Go program (one binary, about 2,500
-lines). It is separate from the go-scdo PoW shards 1-4.
+lines). It is separate from the go-scdo PoW chains SCDO Shard1 (Classic), SCDO Shard2 (Classic), SCDO Shard3 (Classic) and SCDO Shard4 (Classic).
 
 | | |
 |---|---|
@@ -119,7 +119,7 @@ Please read these before you build on shard 0:
   are append-only files. This is fine for the current load but will not scale to large state.
 - **Internal partitions.** `numShards = 4` means internal execution partitions inside this
   node (transfers between partitions settle in the next block). They are unrelated to the
-  go-scdo shards 1-4.
+  go-scdo chains SCDO Shard1 (Classic), SCDO Shard2 (Classic), SCDO Shard3 (Classic) and SCDO Shard4 (Classic).
 - The `/ui` demo's "Transfer ERC20" button still uses the removed unsigned-transaction
   form, so it returns an error. Use a wallet instead.
 
