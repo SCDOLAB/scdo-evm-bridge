@@ -6,7 +6,7 @@
 > [scdoscan.io](https://scdoscan.io) are operated by **9Y9 PTY LTD** (3/251 Blackburn Rd, Mount Waverley VIC 3149, Australia;
 > ACN 600 445 118, ABN 19 600 445 118; see the [compliance page](https://scdoscan.io/compliance.html)). 9Y9 PTY LTD is registered with
 > [AUSTRAC VASP register](https://online.apps.austrac.gov.au/vaspr) as a Digital Currency Exchange provider,
-> registration **DCE100714503-001**, and is a member of the
+> registration **DCE100714503-001** (valid until 14 March 2029), and is a member of the
 > Australian Financial Complaints Authority (**AFCA member 124589**).
 > Registration does not mean AUSTRAC endorses or approves 9Y9 PTY LTD, SCDO or any
 > product or service. This repository is open-source software kept for reference.
